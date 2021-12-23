@@ -8,7 +8,7 @@
             "name": "Python: Test Parser",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/test/testparser.py",
+            "program": "${workspaceFolder}/test/scratch/testparser.py",
             "console": "integratedTerminal"
         }
     ]

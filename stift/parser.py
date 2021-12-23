@@ -1,6 +1,8 @@
-from typing import List
+from typing import List, Union
 
 from stift.exceptions import ParserError
+
+TokenResponse = List[List[dict]]
 
 
 class ParseTypes:
@@ -15,6 +17,9 @@ class Token:
     def __init__(self, type=ParseTypes.variable) -> None:
         self.type = type
         self.value = ""
+
+    def set_val(self, val) -> None:
+        self.value = val.strip()
 
     def to_dict(self) -> dict:
         return self.__dict__
@@ -32,12 +37,15 @@ class Parser:
     The main method is "parse"
     """
 
-    def __init__(self) -> None:
+    def __init__(self, s: str = None) -> Union[None, TokenResponse]:
         self.tokens = [[]]
         self.level = 0
         self.token_index = 0
 
-    def parse(self, s: str) -> List[List[dict]]:
+        if s is not None:
+            self.parsed_data = self.parse(s)
+
+    def parse(self, s: str) -> TokenResponse:
         """Parse a string with functions, strings, variables, and arrays.
 
         A tool to use these arguments should start at the end of the returned array (lowest level)
@@ -72,6 +80,8 @@ class Parser:
 
         # Iterate through string and handle possible characters in order of precedence
         for c in s:
+            if self.current_token is None:
+                self.create_token()
 
             if c == "\\":
                 # Escape character
@@ -93,17 +103,18 @@ class Parser:
                 self.current_token.value += c
 
             elif c == "(":
+                self.finalize_current_token(identifier=True)
                 self.increase_level()
                 self.parent_token.type = ParseTypes.function
                 self.parent_token.argc = 1
-                self.parent_token.args = [(self.level, self.token_index)]
+                self.parent_token.argv = [(self.level, self.token_index)]
 
             elif c == ")":
                 self.decrease_level()
 
             elif c == "[":
                 self.increase_level()
-                self.parent_token.index = [(self.level, self.token_index)]
+                self.parent_token.index = (self.level, self.token_index)
                 self.parent_token.type = ParseTypes.array
 
             elif c == "]":
@@ -113,7 +124,7 @@ class Parser:
                 self.finalize_current_token()
                 self.increase_token_index()
                 self.parent_token.argc += 1
-                self.parent_token.args.append((self.level, self.token_index))
+                self.parent_token.argv.append((self.level, self.token_index))
 
             else:
                 self.current_token.value += c
@@ -123,31 +134,40 @@ class Parser:
         if self.level != 0:
             raise ParserError("Unmatched bracket or quote somewhere along the line")
 
-        return self.dump_tokens()
+        self.parsed_data = self.dump_tokens()
+        return self.parsed_data
 
-    def finalize_current_token(self) -> None:
-        """Convert numeric values if possible."""
+    def finalize_current_token(self, identifier=False) -> None:
+        """Convert numeric values if possible. Also verify identifiers"""
+        self.current_token.value = self.current_token.value.strip()
+        if identifier:
+            if not self.current_token.value.isidentifier():
+                raise ParserError(f"Not a valid identifier: {self.current_token.value}")
+            return
+
         if self.current_token.type == ParseTypes.variable:
             try:
                 v = float(self.current_token.value)
                 v = int(self.current_token.value)
             except ValueError:
-                pass
+                # Default type is variable / identifier
+                return self.finalize_current_token(identifier=True)
+
             else:
                 self.current_token.value = v
                 self.current_token.type = type(v)
 
     def increase_level(self) -> None:
-        """Add an empty level."""
+        """Add an empty level and set us to that depth."""
         self.level += 1
-        self.tokens.append([])
-        self.token_index = len(self.tokens[self.level])
+        self.tokens.append([Token()])
+        self.token_index = len(self.tokens[self.level]) - 1
 
     def decrease_level(self) -> None:
-        """Decrease the level and set index properly."""
+        """Decrease the depth level and set index properly."""
         self.finalize_current_token()
         self.level -= 1
-        self.token_index = len(self.tokens[self.level])
+        self.token_index = len(self.tokens[self.level]) - 1
 
     def increase_token_index(self) -> None:
         """Increase token index, nothing special."""
@@ -161,15 +181,19 @@ class Parser:
         """Go through two levels of nesting to get a dict."""
         return [[i.to_dict() for i in l] for l in self.tokens]
 
+    def create_token(self) -> None:
+        """Add a token to the current level."""
+        self.tokens[self.level].append(Token())
+
     @property
     def current_token(self) -> Token:
         """Return the currently active token"""
         if len(self.tokens[self.level]) < self.token_index + 1:
-            self.tokens[self.level].append(Token())
+            return None
         return self.tokens[self.level][self.token_index]
 
     @current_token.setter
-    def current_token(self, val):
+    def current_token(self, val) -> None:
         self.tokens[self.level][self.token_index] = val
 
     @property
