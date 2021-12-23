@@ -1,0 +1,7 @@
+black
+pytest
+wheel
+twine
+sphinx
+sphinx-markdown-builder
+sphinx-autodoc-typehints
