@@ -73,6 +73,27 @@ class TestParser:
 
         assert DeepDiff(parsed, expected) == {}
 
+    def test_meta(self):
+        """Test meta tags starting with @@. Make sure they don't get flagged as bad identifiers."""
+        s = r"""@@b("a")"""
+        parsed = Parser().parse(s)
+
+        expected = [
+            [
+                {
+                    "type": ParseTypes.function,
+                    "value": "@@b",
+                    "argc": 1,
+                    "argv": [(1, 0)],
+                }
+            ],
+            [
+                {"type": str, "value": "a"},
+            ],
+        ]
+
+        assert DeepDiff(parsed, expected) == {}
+
 
 class TestParserErrors:
     def test_missing_closing(self):

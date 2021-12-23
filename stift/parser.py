@@ -141,7 +141,8 @@ class Parser:
         """Convert numeric values if possible. Also verify identifiers"""
         self.current_token.value = self.current_token.value.strip()
         if identifier:
-            if not self.current_token.value.isidentifier():
+            testval = self.current_token.value.replace("@@", "")
+            if not testval.isidentifier():
                 raise ParserError(f"Not a valid identifier: {self.current_token.value}")
             return
 
