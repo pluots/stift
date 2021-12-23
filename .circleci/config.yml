@@ -3,12 +3,12 @@
 version: 2.1
 
 orbs:
-  python: circleci/python@1.5.0
+    python: circleci/python@1.5.0
 
 workflows:
     example-workflow:
-      jobs:
-        - python/test:
-            app-dir: ~/stift 
-            test-tool: pytest 
-            version: '3.8' 
+        jobs:
+            - python/test:
+                  app-dir: ~/stift
+                  test-tool: pytest
+                  version: "3.8"
