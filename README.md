@@ -33,7 +33,7 @@ For arrays, there will also be an index element (See example)
 ```python
 from stift import Parser
 
-s = r"""banana(apple,fruit(1,2,"\"yes\" or \"no\"",sauce[0]"""
+s = r"""blend(banana, kiwi(1,2,"\"yes\" or \"no\"", mango[0]))"""
 parsed = Parser().parse(s)
 
 # Returns the following:
