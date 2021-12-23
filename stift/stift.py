@@ -1,8 +1,6 @@
-import re
 import math
-from typing import Union, Any
-
-
+import re
+from typing import Any, Union
 
 ANY_NUM_ARGS = 'ANY_NUM_ARGS'
 NUMERICAL = Union[int, float, complex]
@@ -11,7 +9,7 @@ REALS = Union[int, float]
 _function_match = re.compile(r"")
 _array_match = re.compile(r"")
 _string_match=re.compile(r"""(["])(?:(?=(\\?))\2.)*?\1""")
-_meta_matcher
+_meta_matcher=None
 
 # Identify strings
 
