@@ -1,3 +1,5 @@
+from typing import get_args
+
 from stift.functions.base import ANY, ANY_NUM_ARGS, REALS, BaseFunction
 
 
@@ -18,7 +20,7 @@ class IsNumber(BaseFunction):
     arg_types = ANY
 
     def process(self, argc: int, argv: list) -> bool:
-        return isinstance(argv[0], REALS)
+        return isinstance(argv[0], get_args(REALS))
 
 
 class IsText(BaseFunction):

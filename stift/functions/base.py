@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Union
+from typing import Any, Iterable, Union, get_args
 
 from stift.exceptions import FunctionError
 
@@ -68,14 +68,14 @@ class BaseFunction:
 
         if isinstance(self.arg_types, Iterable):
             for i, arg in enumerate(self.argv):
-                if not isinstance(arg, self.arg_types[i]):
+                if not isinstance(arg, get_args(self.arg_types[i])):
                     raise FunctionError(
                         f"{self.funcname}() expected type {self.arg_types[i]} at position {i}: got {type(arg)}"
                     )
 
         else:
             for i, arg in enumerate(self.argv):
-                if not isinstance(arg, self.arg_types):
+                if not isinstance(arg, get_args(self.arg_types)):
                     raise FunctionError(
                         f"{self.funcname}() expected type {self.arg_types} at position {i}: got {type(arg)}"
                     )
