@@ -9,6 +9,6 @@ workflows:
     example-workflow:
         jobs:
             - python/test:
-                  app-dir: ~/stift
+                  #   app-dir: ~/stift
                   test-tool: pytest
                   version: "3.8"
