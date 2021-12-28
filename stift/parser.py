@@ -1,3 +1,4 @@
+from functools import reduce
 from typing import List, Union
 
 from stift.exceptions import ParserError
@@ -29,6 +30,11 @@ class Token:
 
     def __str__(self) -> str:
         return f'"{self.value}" [{self.type}]'
+
+
+def tupindex(mat: list, t: tuple):
+    """Access a nested list object via a tuple"""
+    return reduce(lambda mat, idx: mat[idx], t, mat)
 
 
 class Parser:
@@ -182,14 +188,17 @@ class Parser:
         if self.current_token.type == ParseTypes.variable:
             try:
                 v = float(self.current_token.value)
-                v = int(self.current_token.value)
             except ValueError:
                 # Default type is variable / identifier
                 return self.finalize_current_token(identifier=True)
 
-            else:
-                self.current_token.value = v
-                self.current_token.type = type(v)
+            try:
+                v = int(self.current_token.value)
+            except ValueError:
+                pass
+
+            self.current_token.value = v
+            self.current_token.type = type(v)
 
     def increase_level(self) -> None:
         """Add an empty level and set us to that depth."""

@@ -1,152 +1,63 @@
-import math
+import inspect
 import re
-from typing import Any, Union
 
-ANY_NUM_ARGS = "ANY_NUM_ARGS"
-NUMERICAL = Union[int, float, complex]
-REALS = Union[int, float]
+import stift.functions as funcs
 
+# import stift.functions
+from stift.parser import Parser, ParseTypes, tupindex
 
-# Identify strings
-
-# Identify functions and arguments (recursive)
-# This should first identify strings and exclude anything in them
-
-# Process
-
-# Function classes
+# s = Sum()
+# print(s._funcname())
 
 
-def typechecker(x: str):
-    # check if float, int, etc
-    pass
+def get_functions() -> dict:
+    """Get all classes in the funcs module."""
+    func_classes = inspect.getmembers(funcs, inspect.isclass)
 
-
-class BaseFunction:
-    def eval(s: str):
-        """This function will evaluate a portion of another function."""
-        pass
-
-    def check_types():
-        """Check arg types. If len arg_types = 1, all args must be of that type"""
-
-    def init(self, *args):
-        # preprocess array args
-        self.argv = args
-        self.argc = len(args)
-        if (self.num_args != ANY_NUM_ARGS) and (self.argv not in self.num_args):
-            pass
-        #   raise FunctionError("Incorrect number of arguments")
-
-
-class Sum(BaseFunction):
-    arg_counts = ANY_NUM_ARGS
-    arg_types = REALS
-
-    def process(self):
-        retval = 0
-        for arg in self.args:
-            retval += arg
-
-        return retval
-
-
-class Ceiling(BaseFunction):
-    arg_counts = (1, 2)
-    arg_types = REALS
-
-    def process(self) -> REALS:
-        if self.argc == 1:
-            return math.ceil(self.argv[0])
-        else:
-            mult = self.argv[1]
-            return math.ceil(self.argv[0] / mult) * mult
-
-
-class Floor(BaseFunction):
-    arg_counts = (1, 2)
-    arg_types = REALS
-
-    def process(self) -> REALS:
-        if self.argc == 1:
-            return math.floor(self.argv[0])
-        else:
-            mult = self.argv[1]
-            return math.floor(self.argv[0] / mult) * mult
-
-
-class Round(BaseFunction):
-    arg_counts = (1, 2)
-    arg_types = REALS
-
-    def process(self) -> REALS:
-        if self.argc == 1:
-            return round(self.argv[0])
-        else:
-            mult = self.argv[1]
-            return round(self.argv[0], self.argv[1])
-
-
-class Trunc(BaseFunction):
-    arg_counts = (1, 2)
-
-    def process(self):
-        pass
-
-
-class Today(BaseFunction):
-    pass
-
-
-class Hour(BaseFunction):
-    pass
-
-
-class Minute(BaseFunction):
-    pass
-
-
-class Month(BaseFunction):
-    pass
-
-
-class If(BaseFunction):
-    pass
-
-
-class Coalesce(BaseFunction):
-    """Not technically a spreadsheet function, but possibly very useful"""
-
-    pass
-
-
-class Concatenate(BaseFunction):
-    pass
-
-
-class Trim(BaseFunction):
-    pass
-
-
-class Len(BaseFunction):
-    pass
+    return {
+        m[1].getfuncname(): m[1]
+        for m in func_classes
+        if (funcs.__name__ in m[1].__module__ and m[1].getfuncname() != "basefunction")
+    }
 
 
 class Stift:
     """Parent class."""
 
-    function_cls_map = {"sum": Sum}
+    function_cls_map = get_functions()
 
-    def __init__(self, s: str, allowed_variables: list = None):
+    def __init__(self, s: str = None, allowed_variables: list = None):
         self.s = s
 
         self.allowed_variables = allowed_variables if allowed_variables is None else []
 
-    def add_function():
-        pass
+    def add_function(self, cls):
+        """Add a new function to the list"""
+        self.function_class_map[cls.getfuncname()] = cls
 
-    def parse():
+    def parse(self, s: str = None, fmtstr: bool = True):
         """Find lowest level functions, execute those first.
 
         Then work up."""
-        pass
+
+        if s is not None:
+            self.s = s
+        else:
+            s = self.s
+
+        parsed = Parser(fmtstr=fmtstr).parse(s)
+
+        for i, level in enumerate(reversed(parsed)):
+            for j, token in enumerate(level):
+                if token["type"] == ParseTypes.variable:
+                    token["value"] = self.allowed_variables[token["value"]]
+                elif token["type"] == ParseTypes.array:
+                    arr = token["value"]
+                    index = tupindex(parsed, token["index"])["value"]
+                    token["value"] = self.allowed_variables[arr][index]
+                elif token["type"] == ParseTypes.function:
+                    argv = [tupindex(parsed, t)["value"] for t in token["argv"]]
+                    Func = self.function_cls_map[token["value"]]
+                    token["value"] = Func().execute(*argv)
+
+        return "".join([str(t["value"]) for t in parsed[0]])

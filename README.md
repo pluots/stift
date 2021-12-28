@@ -31,7 +31,7 @@ For arrays, there will also be an index element (See example)
 ### Parser Example
 
 ```python
-from stift import Parser
+from stift.parser import Parser, ParserError, ParseTypes
 
 s = r"""blend(banana, kiwi(1,2,"\"yes\" or \"no\"", mango[0]))"""
 parsed = Parser().parse(s)
