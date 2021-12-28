@@ -37,7 +37,23 @@ class Parser:
     The main method is "parse"
     """
 
-    def __init__(self, s: str = None) -> Union[None, TokenResponse]:
+    def __init__(
+        self, s: str = None, fmtstr: bool = True
+    ) -> Union[None, TokenResponse]:
+        """Initialize the parser class.
+
+        :param s: A string to be formatted, if desired at this time, defaults to None
+        :type s: str, optional
+        :param fmtstr: Whether or not the string should be treaded as a format string.
+            If so, the top level will be assumed to be text and curly brackets will be
+            processed (e.g. "Total quantity is {round(count)}")
+            If not, the top level will be assumed to be an identifier (e.g. "round(count)")
+            Defaults to True
+        :type fmtstr: `bool`, optional
+        :return: Return the parsed string if it is provided
+        :rtype: Union[None, TokenResponse]
+        """
+        self.fmtstr = fmtstr
         self.tokens = [[]]
         self.level = 0
         self.token_index = 0
@@ -74,33 +90,49 @@ class Parser:
 
         escape_active = False
         str_active = False
+        topstr_active = self.fmtstr
 
-        # Left ([,(,") will increase level
-        # Right ([,(,") will finalize current token and decrease level
+        # Left ([,(,{,") will increase level
+        # Right (],),},") will finalize current token and decrease level
 
         # Iterate through string and handle possible characters in order of precedence
         for c in s:
             if self.current_token is None:
                 self.create_token()
+                if topstr_active:
+                    self.current_token.type = str
 
             if c == "\\":
                 # Escape character
                 escape_active = True
 
             elif escape_active:
+                # If escape is active, treat this character as a literal
                 escape_active = False
                 self.current_token.value += c
 
             elif c == '"':
-                # End a string
-                if str_active:
+                if topstr_active:
+                    # Ignore if we are in the top string
+                    self.current_token.value += c
+                elif str_active:
+                    # End a string
                     str_active = False
                 else:
+                    # Start a string
                     self.current_token.type = str
                     str_active = True
 
             elif str_active:
                 self.current_token.value += c
+
+            elif c == "{":
+                topstr_active = False
+                self.increase_token_index()
+
+            elif c == "}":
+                topstr_active = True
+                self.increase_token_index()
 
             elif c == "(":
                 self.finalize_current_token(identifier=True)
@@ -138,9 +170,10 @@ class Parser:
         return self.parsed_data
 
     def finalize_current_token(self, identifier=False) -> None:
-        """Convert numeric values if possible. Also verify identifiers"""
+        """Convert numeric values if possible. Also verify identifiers."""
         self.current_token.value = self.current_token.value.strip()
         if identifier:
+            # Allow for identifiers starting with @@
             testval = self.current_token.value.replace("@@", "")
             if not testval.isidentifier():
                 raise ParserError(f"Not a valid identifier: {self.current_token.value}")
