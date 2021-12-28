@@ -12,4 +12,4 @@ workflows:
                   #   app-dir: ~/stift
                   pkg-manager: pip-dist
                   test-tool: pytest
-                  version: "3.8"
+                  version: "3.9"
